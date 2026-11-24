@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-gtjKfB2kUeMGKHBpjbvib2qd5WH/hFYP9wRd52OdXFM='; style-src 'unsafe-inline'; connect-src https://api.github.com; media-src blob:; img-src blob: data:; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#000000">
+<title>nk</title>
+<style>/* 日記の見た目。黒いデザイン（端末の設定にかかわらず、いつも黒） */
+:root {
+  color-scheme: dark;
+  --accent: #0a84ff; --ink: #f2f2f7; --sub: #b4b4bb; --muted: #8e8e93; --hair: #38383a; --bg: #000; --surface: #1c1c1e; --fill: rgba(118,118,128,.28);
+  --warn-bg: #3a2c0a; --warn-ink: #ffd88a; --red: #ff5a5f;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.5 var(--font); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 0 16px 120px; }
+
+.top { display: flex; align-items: center; justify-content: space-between; padding-top: 14px; }
+h1 { font-size: 34px; line-height: 41px; margin: 4px 0; }
+.iconbtn { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--surface); color: var(--accent); }
+.search { display: flex; gap: 8px; margin: 8px 0 4px; }
+.search input { flex: 1; min-width: 0; border: 0; background: var(--fill); border-radius: 10px; padding: 0 12px; height: 40px; }
+.month { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; }
+.month select { border: 0; background: var(--surface); border-radius: 999px; height: 44px; padding: 0 16px; font-weight: 600; }
+.month button { width: 44px; height: 44px; border: 0; border-radius: 50%; background: var(--surface); color: var(--accent); font-size: 24px; padding: 0; }
+.month button:disabled { opacity: .3; }
+.period { color: var(--muted); font-size: 14px; margin: 12px 4px 0; }
+
+.day { margin-top: 26px; }
+.day h2 { font-size: 20px; line-height: 25px; margin: 0 4px 8px; }
+.entry { background: var(--surface); border-radius: 16px; padding: 12px 16px 14px; margin-bottom: 10px; }
+.entry header { display: flex; justify-content: space-between; align-items: center; min-height: 32px; }
+.entry time { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.body, .tr p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0 8px; }
+.link { border: 0; background: none; color: var(--accent); padding: 6px 0; font-size: 15px; }
+.audio { margin: 8px 0; } .audio audio, .recbox audio { width: 100%; height: 44px; }
+.playbtn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; border: 0; border-radius: 999px; background: var(--fill); color: var(--accent); padding: 0 18px 0 12px; font-weight: 600; }
+.tr { border-top: 1px solid var(--hair); margin-top: 10px; padding-top: 8px; }
+.trh { font-size: 13px; color: var(--muted); font-weight: 600; }
+.tr.sum { border-top: 0; margin-top: 4px; padding: 10px 12px; background: var(--fill); border-radius: 12px; } .tr.sum p { margin-bottom: 0; }
+/* 写真 */
+.photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 8px 0; }
+.photos.one { grid-template-columns: 1fr; }
+.ph { position: relative; display: block; aspect-ratio: 1; border: 0; padding: 0; border-radius: 10px; overflow: hidden; background: var(--fill); color: var(--muted); font-size: 12px; }
+.photos.one .ph { aspect-ratio: 4 / 3; }
+.ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.viewer { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.94); display: grid; place-items: center; cursor: zoom-out; }
+.viewer img { max-width: 100vw; max-height: 100vh; object-fit: contain; }
+.phedit { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.phedit .ph button { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border: 0; border-radius: 50%; background: rgba(0,0,0,.65); color: #fff; font-size: 13px; padding: 0; }
+.addph { aspect-ratio: 1; display: grid; place-items: center; text-align: center; border: 1px dashed var(--muted); border-radius: 10px; color: var(--accent) !important; font-size: 13px !important; margin: 0 !important; cursor: pointer; padding: 4px; }
+.tr.wait, .tr.err { color: var(--sub); font-size: 15px; } .tr.err { color: var(--red); }
+.seg { cursor: pointer; border-radius: 4px; } .seg:hover { background: var(--fill); }
+.seg.low { text-decoration: underline dotted var(--red); text-underline-offset: 4px; }
+.note, .muted { color: var(--muted); font-size: 13px; line-height: 18px; }
+.empty { color: var(--muted); text-align: center; margin: 48px 0; }
+.alert { background: var(--warn-bg); color: var(--warn-ink); border-radius: 14px; padding: 10px 14px; margin-top: 12px; font-size: 15px; }
+
+.fab { position: fixed; right: max(20px, calc(50vw - 340px)); bottom: calc(24px + env(safe-area-inset-bottom)); width: 60px; height: 60px; border: 0; border-radius: 50%; background: var(--accent); color: #fff; display: grid; place-items: center; box-shadow: 0 6px 20px rgba(0,0,0,.25); z-index: 5; }
+.fab svg { width: 28px; height: 28px; }
+.btn { border: 0; background: var(--fill); border-radius: 999px; min-height: 44px; padding: 0 18px; font-weight: 600; color: var(--accent); }
+.btn.primary { background: var(--accent); color: #fff; } .btn.danger { color: var(--red); }
+
+/* 書く・直す画面（スマホは下から、PCは中央） */
+.sheet { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 20; display: flex; align-items: flex-end; justify-content: center; }
+.sheet > div { background: var(--bg); width: 100%; max-width: 600px; max-height: 94vh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 4px 16px calc(24px + env(safe-area-inset-bottom)); }
+.sbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; min-height: 52px; position: sticky; top: 0; background: var(--bg); z-index: 1; }
+.sbar button { border: 0; background: none; color: var(--accent); min-height: 44px; padding: 0; justify-self: start; }
+.sbar .go { justify-self: end; font-weight: 700; } .sbar button:disabled { opacity: .5; }
+.sheet label { display: block; font-size: 13px; color: var(--sub); margin: 14px 4px 6px; }
+.sheet input[type=date], .sheet input[type=time], .sheet textarea { width: 100%; border: 0; background: var(--surface); border-radius: 12px; padding: 10px 12px; min-height: 44px; }
+.sheet textarea { resize: vertical; line-height: 1.6; } .sheet textarea:disabled { color: var(--muted); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.recbox { background: var(--surface); border-radius: 12px; padding: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.recbtn { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; border: 0; border-radius: 999px; background: var(--accent); color: #fff; padding: 0 20px 0 14px; font-weight: 600; }
+.recbtn.on { background: var(--red); }
+.rectime { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 20px; }
+.recrow { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.danger { margin-top: 24px; text-align: center; }
+table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; margin-top: 8px; }
+th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--hair); font-weight: 400; font-size: 15px; } th { color: var(--sub); white-space: nowrap; } tr:last-child > * { border-bottom: 0; }
+.toast { position: fixed; left: 50%; bottom: calc(100px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: rgba(40,40,42,.94); color: #fff; padding: 10px 16px; border-radius: 999px; font-size: 15px; z-index: 30; max-width: 92vw; text-align: center; }
+
+.lock { max-width: 340px; margin: 16vh auto 0; text-align: center; }
+.lock h2 { font-size: 20px; }
+.lock input[type=password] { width: 100%; border: 0; background: var(--surface); border-radius: 12px; padding: 12px; margin: 14px 0 8px; }
+.lock .check { display: flex; justify-content: center; align-items: center; gap: 8px; font-size: 15px; } .lock .check input { width: 20px; height: 20px; }
+.lock .err { color: var(--red); min-height: 24px; font-size: 14px; }
+
+/* ---- iPhone（Safari）向けの直し。iPhone SE（幅320〜375）でも横にはみ出さないように ---- */
+html, body { max-width: 100%; overflow-x: hidden; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); padding-top: env(safe-area-inset-top); }
+.entry, .tr, .body, .day h2, .note { min-width: 0; overflow-wrap: anywhere; }
+/* Safari の日付・時刻の入力欄は、幅の指定を無視して広がることがあるので、見た目の飾りを外して幅を固定する */
+.sheet input[type=date], .sheet input[type=time] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; text-align: left; line-height: 24px; }
+.sheet input::-webkit-date-and-time-value { text-align: left; margin: 0; }
+.row2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.row2 > div, .search, .month select { min-width: 0; }
+.month select { max-width: calc(100% - 100px); }
+.sheet > div > * { max-width: 100%; }
+/* Safari では画面の高さ（vh）にアドレスバーの分も入るので、見えている高さ（dvh）を使う。上の「キャンセル／保存」が隠れないように */
+.sheet { height: 100vh; height: 100dvh; }
+.sheet > div { max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); }
+.viewer { height: 100dvh; }
+/* 幅の狭い iPhone（SE など） */
+@media (max-width: 380px) {
+  body { font-size: 16px; }
+  h1 { font-size: 28px; line-height: 34px; }
+  .wrap { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
+  .entry { padding: 10px 12px 12px; }
+  .sheet > div { padding-left: 12px; padding-right: 12px; }
+  .row2 { gap: 8px; }
+  .sheet input[type=date], .sheet input[type=time] { padding: 10px 8px; font-size: 16px; }
+  .phedit { grid-template-columns: repeat(3, 1fr); }
+  .fab { width: 56px; height: 56px; right: 16px; }
+}
+
+@media (min-width: 700px) { .sheet { align-items: center; } .sheet > div { border-radius: 20px; } .toast { bottom: 32px; } }
+</style>
+</head>
+<body>
+<main class="wrap" id="app"></main>
+<script id="payload" type="application/json">{"enc":true,"iter":600000,"salt":"z1v4DQ9RbbLL+3dGwdjiAg==","iv":"+NSTqCpRjwV3uvc1","ct":"bz6KU9F6c7c/bP4/BZojBdNjqU/8DboGVWH8OWykMBMLy/Ia/40e/H1gdoPvcuW7TGGiWDpxSNYeONLhiIw04q1s4sCnZhBsqFdcgyHh9tTf4IFCDggb/ofKNY67DfQExg1+da5qRgm6K8M/lT/ytfglE3wg2ZYKottl+qp62olyr/zo9lzQbpR7IENn0N5KidA+EqKWqt/TK7ZQT5hyFgdtG2OtK3xXCfeHpiUqhiVIbUAa8AFjW3EycSoNFPKidoMU"}</script>
+<script>// 日記の画面。文章と音声を、非公開の保管庫（GitHub）に保存する。音声の文字起こしは保管庫の側（GitHub Actions）で行う
+(function () {
+  const $ = (s, el) => (el || document).querySelector(s);
+  const app = $("#app");
+  const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const pad = (n) => String(n).padStart(2, "0");
+  const WD = ["日", "月", "火", "水", "木", "金", "土"];
+  const nowParts = () => { const d = new Date(); return { date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, time: `${pad(d.getHours())}:${pad(d.getMinutes())}`, sec: pad(d.getSeconds()) }; };
+  const dayLabel = (date) => { const d = new Date(date + "T00:00:00"); return `${d.getMonth() + 1}月${d.getDate()}日（${WD[d.getDay()]}）`; };
+  const mlabel = (m) => `${m.slice(0, 4)}年${+m.slice(5)}月`;
+  const dur = (s) => `${Math.floor(s / 60)}:${pad(Math.round(s) % 60)}`;
+  const payload = JSON.parse($("#payload").textContent), PWKEY = "nikki-pw", DRAFT = "nikki-draft";
+  const LOWCONF = 0.8;   // これより自信が低い部分には印を付ける
+
+  let B;   // 保存先 { type: "github"|"local", repo, branch, token }
+  const S = { month: nowParts().date.slice(0, 7), months: [], data: {}, q: "", results: null, raw: {} };
+
+  // ---------- 保存先 ----------
+  const b64e = (bytes) => { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+  const b64d = (s) => Uint8Array.from(atob(s.replace(/\s/g, "")), (c) => c.charCodeAt(0));
+  const gh = (p, opt) => fetch(`https://api.github.com/repos/${B.repo}/${p}`, { cache: "no-store", ...(opt || {}),
+    headers: { Authorization: `Bearer ${B.token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" } });
+  const fail = (r) => { const e = new Error(r.status === 401 ? "保存先の鍵が無効です（期限切れかもしれません）" : r.status === 409 || r.status === 422 ? "ほかの端末の変更と重なりました" : `保存先エラー ${r.status}`); e.status = r.status; return e; };
+  const store = {
+    async get(path) {
+      if (B.type === "local") { const r = await fetch(`/api/file?path=${encodeURIComponent(path)}`, { cache: "no-store" }); if (r.status === 404) return null; if (!r.ok) throw fail(r); return { bytes: new Uint8Array(await r.arrayBuffer()), sha: null }; }
+      const r = await gh(`contents/${path}?ref=${B.branch}`); if (r.status === 404) return null; if (!r.ok) throw fail(r);
+      const j = await r.json(); let c = j.encoding === "base64" ? j.content : "";
+      if (!c) { const r2 = await gh(`git/blobs/${j.sha}`); if (!r2.ok) throw fail(r2); c = (await r2.json()).content; }   // 1MBをこえるファイル（音声）
+      return { bytes: b64d(c), sha: j.sha };
+    },
+    async put(path, bytes, sha, message) {
+      if (B.type === "local") { const r = await fetch(`/api/file?path=${encodeURIComponent(path)}`, { method: "PUT", body: bytes }); if (!r.ok) throw fail(r); return; }
+      const r = await gh(`contents/${path}`, { method: "PUT", body: JSON.stringify({ message, content: b64e(bytes), branch: B.branch, ...(sha ? { sha } : {}) }) });
+      if (!r.ok) throw fail(r);
+    },
+    async del(path, message) {
+      if (B.type === "local") { await fetch(`/api/file?path=${encodeURIComponent(path)}`, { method: "DELETE" }); return; }
+      const cur = await gh(`contents/${path}?ref=${B.branch}`); if (!cur.ok) return;
+      await gh(`contents/${path}`, { method: "DELETE", body: JSON.stringify({ message, sha: (await cur.json()).sha, branch: B.branch }) });
+    },
+    async list(dir) {
+      if (B.type === "local") { const r = await fetch(`/api/list?dir=${encodeURIComponent(dir)}`, { cache: "no-store" }); return r.ok ? r.json() : []; }
+      const r = await gh(`contents/${dir}?ref=${B.branch}`); if (r.status === 404) return []; if (!r.ok) throw fail(r);
+      return (await r.json()).map((x) => x.name);
+    },
+  };
+  const dec = (b) => JSON.parse(new TextDecoder().decode(b)), enc = (o) => new TextEncoder().encode(JSON.stringify(o, null, 1) + "\n");
+  const mfile = (m) => `entries/${m}.json`;
+  async function loadMonth(m, force) {
+    if (S.data[m] && !force) return S.data[m];
+    const f = await store.get(mfile(m));
+    return (S.data[m] = f ? dec(f.bytes) : []);
+  }
+  // 最新を読み直してから変更して保存する（ほかの端末や文字起こしの結果を消さないため）。重なったらやり直す
+  async function saveMonth(m, fn, message) {
+    for (let i = 0; ; i++) {
+      const f = await store.get(mfile(m)), next = fn(f ? dec(f.bytes) : []);
+      next.sort((a, b) => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0));
+      try { await store.put(mfile(m), enc(next), f && f.sha, message); S.data[m] = next; if (!S.months.includes(m)) S.months = [...S.months, m].sort(); return; }
+      catch (e) { if (i >= 3 || (e.status !== 409 && e.status !== 422)) throw e; }
+    }
+  }
+
+  // ---------- 送信前の音声を端末に取っておく（送信に失敗しても消えないように） ----------
+  const idb = () => new Promise((res, rej) => { const r = indexedDB.open("nikki", 1); r.onupgradeneeded = () => r.result.createObjectStore("outbox", { keyPath: "id" }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const box = async (mode, fn) => { try { const db = await idb(); return await new Promise((res, rej) => { const t = db.transaction("outbox", mode), q = fn(t.objectStore("outbox")); t.oncomplete = () => res(q && q.result); t.onerror = () => rej(t.error); }); } catch (e) { return mode === "readonly" ? [] : null; } };
+  const outbox = { put: (x) => box("readwrite", (s) => s.put(x)), del: (id) => box("readwrite", (s) => s.delete(id)), all: () => box("readonly", (s) => s.getAll()) };
+
+  let toastT;
+  const toast = (msg) => { let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; document.body.appendChild(t); } t.textContent = msg; clearTimeout(toastT); toastT = setTimeout(() => t.remove(), 4000); };
+
+  // ---------- 表示 ----------
+  const ic = (d) => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const IC = { mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>', play: '<path d="M7 4.5v15l12-7.5z" fill="currentColor"/>', plus: '<path d="M12 5v14M5 12h14"/>', gear: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.3-1.3L14 3h-4l-.3 2.4a7 7 0 0 0-2.3 1.3l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .9.1 1.3l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.3 1.3L10 21h4l.3-2.4a7 7 0 0 0 2.3-1.3l2.3.9 2-3.4-2-1.5c.1-.4.1-.9.1-1.3z"/>', stop: '<rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>' };
+
+  function trHtml(e) {
+    const t = e.tr; if (!e.audio) return "";
+    if (!t || t.status === "pending") return `<div class="tr wait">文字に直しています…（1〜3分ほどかかります）</div>`;
+    if (t.status === "error") return `<div class="tr err">文字にできませんでした：${esc(t.err || "")} <button class="link" data-act="retry" data-v="${esc(e.id)}">もう一度ためす</button></div>`;
+    const sum = t.summary ? `<div class="tr sum"><div class="trh">要約（文字起こしをもとに作成）</div><p>${esc(t.summary)}</p></div>` : "";
+    if (t.edited != null) return `${sum}<div class="tr"><div class="trh">文字起こし（自分で直したもの）</div><p>${esc(t.edited)}</p></div>`;
+    const segs = t.segs || [], low = segs.some((s) => s.conf != null && s.conf < LOWCONF), raw = S.raw[e.id];
+    if (!segs.length) return `<div class="tr"><div class="trh">文字起こし</div><p class="muted">声が聞き取れませんでした。</p></div>`;
+    return `${sum}<div class="tr"><div class="trh">文字起こし${raw ? "（整える前）" : ""}</div><p>${segs.map((s) =>
+      `<span class="seg${s.conf != null && s.conf < LOWCONF ? " low" : ""}" data-act="seek" data-v="${esc(e.id)}" data-t="${s.t}" title="ここから再生">${esc(raw ? s.raw : s.text)}</span>`).join(raw ? " " : "")}</p>
+      ${low ? '<div class="note">点線の部分は、聞き取りに自信がないところです。押すとその場所から再生できるので、聞いて確かめてください。</div>' : ""}
+      <button class="link" data-act="raw" data-v="${esc(e.id)}">${raw ? "整えたものに戻す" : "整える前（聞き取ったまま）を見る"}</button></div>`;
+  }
+  const photosHtml = (e) => (e.photos && e.photos.length ? `<div class="photos${e.photos.length === 1 ? " one" : ""}">${e.photos.map((p, i) =>
+    `<button class="ph" data-act="photo" data-v="${esc(e.id)}" data-i="${i}" data-photo="${esc(p.path)}" aria-label="写真を大きく見る"></button>`).join("")}</div>` : "");
+  const entryHtml = (e) => `<article class="entry" id="e-${esc(e.id)}"><header><time>${esc(e.at.slice(11, 16))}</time><button class="link" data-act="edit" data-v="${esc(e.id)}">編集</button></header>
+    ${e.text ? `<p class="body">${esc(e.text)}</p>` : ""}${photosHtml(e)}
+    ${e.audio ? `<div class="audio" data-audio="${esc(e.id)}"><button class="playbtn" data-act="play" data-v="${esc(e.id)}">${ic(IC.play)}<span>音声を聞く${e.audio.sec ? `（${dur(e.audio.sec)}）` : ""}</span></button></div>${trHtml(e)}` : ""}</article>`;
+  function listHtml(list) {
+    if (!list.length) return `<p class="empty">まだ日記がありません。右下の「＋」から書けます。</p>`;
+    const days = {}; for (const e of list) (days[e.at.slice(0, 10)] = days[e.at.slice(0, 10)] || []).push(e);
+    return Object.keys(days).sort().reverse().map((d) => `<section class="day"><h2>${dayLabel(d)}</h2>${days[d].sort((a, b) => (a.at < b.at ? 1 : -1)).map(entryHtml).join("")}</section>`).join("");
+  }
+  function render() {
+    const ms = [...new Set([...S.months, S.month])].sort(), i = ms.indexOf(S.month), list = S.data[S.month];
+    const head = `<div class="top"><h1>日記</h1><button class="iconbtn" data-act="settings" aria-label="設定">${ic(IC.gear)}</button></div>
+      <div class="search"><input type="search" id="q" placeholder="日記をさがす（すべての月）" value="${esc(S.q)}">${S.results ? '<button class="btn" data-act="clearq">やめる</button>' : ""}</div>`;
+    const body = S.results ? `<div class="period">「${esc(S.q)}」が見つかった日記：${S.results.length}件</div>${listHtml(S.results)}`
+      : `<div class="month"><button data-act="month" data-v="${ms[i - 1] || ""}" ${i <= 0 ? "disabled" : ""} aria-label="前の月">‹</button>
+        <select id="msel" aria-label="月を選ぶ">${ms.slice().reverse().map((m) => `<option value="${m}" ${m === S.month ? "selected" : ""}>${mlabel(m)}</option>`).join("")}</select>
+        <button data-act="month" data-v="${ms[i + 1] || ""}" ${i >= ms.length - 1 ? "disabled" : ""} aria-label="次の月">›</button></div>
+        ${list ? listHtml(list) : '<p class="empty">読み込んでいます…</p>'}`;
+    app.innerHTML = `${head}<div id="outbox"></div>${body}<button class="fab" data-act="new" aria-label="日記を書く">${ic(IC.plus)}</button>`;
+    showOutbox(); watchPhotos(app);
+  }
+  // ---------- 写真 ----------
+  const urls = {};   // 保管庫から読んだ音声・写真（この画面を開いている間だけ覚えておく）
+  async function fileUrl(p, type) {
+    if (!urls[p]) { const f = await store.get(p); if (!f) throw new Error("ファイルが見つかりません"); urls[p] = URL.createObjectURL(new Blob([f.bytes], { type })); }
+    return urls[p];
+  }
+  // 画面に入ってきた写真だけを読み込む
+  const seen = new IntersectionObserver((list) => { for (const x of list) if (x.isIntersecting) { seen.unobserve(x.target); const el = x.target;
+    fileUrl(el.dataset.photo, "image/jpeg").then((u) => { el.innerHTML = `<img src="${u}" alt="">`; }).catch(() => { el.textContent = "読み込めません"; }); } }, { rootMargin: "300px" });
+  const watchPhotos = (root) => root.querySelectorAll("[data-photo]").forEach((el) => seen.observe(el));
+  async function viewPhoto(id, i) {
+    const e = find(id), p = e && e.photos && e.photos[i]; if (!p) return;
+    const v = document.createElement("div"); v.className = "viewer"; v.onclick = () => v.remove(); document.body.appendChild(v);
+    try { v.innerHTML = `<img src="${await fileUrl(p.path, "image/jpeg")}" alt="">`; } catch (x) { v.remove(); toast("写真を読み込めませんでした"); }
+  }
+  // 写真を、長い辺1600pxまでの JPEG に小さくする（保管庫を大きくしすぎないため）
+  async function shrink(file) {
+    let bmp; try { bmp = await createImageBitmap(file, { imageOrientation: "from-image" }); } catch (e) { throw new Error("この写真は読み込めませんでした"); }
+    const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height)), w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
+    const c = document.createElement("canvas"); c.width = w; c.height = h; c.getContext("2d").drawImage(bmp, 0, 0, w, h);
+    const blob = await new Promise((res) => c.toBlob(res, "image/jpeg", 0.82));
+    return { blob, w, h, url: URL.createObjectURL(blob) };
+  }
+  async function showOutbox() {
+    const items = await outbox.all(), el = $("#outbox"); if (!el) return;
+    el.innerHTML = items && items.length ? `<div class="alert">まだ送信できていない音声の日記が ${items.length} 件あります。 <button class="link" data-act="resend">送信する</button></div>` : "";
+  }
+  async function open(m) {
+    S.month = m; S.results = null; render();
+    try { await loadMonth(m, true); } catch (e) { toast(`読み込めませんでした：${e.message}`); S.data[m] = S.data[m] || []; }
+    if (S.month === m && !$(".sheet")) render();
+  }
+  const find = (id) => { for (const m in S.data) { const e = S.data[m].find((x) => x.id === id); if (e) return e; } return (S.results || []).find((x) => x.id === id); };
+
+  // ---------- 音声を聞く ----------
+  async function play(id, at) {
+    const e = find(id), box = $(`[data-audio="${CSS.escape(id)}"]`); if (!e || !box) return;
+    let a = $("audio", box);
+    if (!a) {
+      box.innerHTML = '<span class="muted">音声を読み込んでいます…</span>';
+      try {
+        box.innerHTML = `<audio controls preload="auto" src="${await fileUrl(e.audio.path, e.audio.mime || "audio/mp4")}"></audio>`; a = $("audio", box);
+      } catch (x) { box.innerHTML = `<span class="muted">再生できませんでした：${esc(x.message)}</span>`; return; }
+    }
+    if (at != null) { const go = () => { try { a.currentTime = at; } catch (x) {} a.play().catch(() => {}); }; if (a.readyState >= 1) go(); else a.addEventListener("loadedmetadata", go, { once: true }); }
+    else a.play().catch(() => {});
+  }
+
+  // ---------- 書く・録音する ----------
+  const closeSheet = () => { stopRec(true); const s = $(".sheet"); if (s) s.remove(); };
+  function sheet(title, html, saveLabel) {
+    closeSheet(); const el = document.createElement("div"); el.className = "sheet";
+    el.innerHTML = `<div role="dialog" aria-modal="true"><div class="sbar"><button data-x="cancel">キャンセル</button><b>${esc(title)}</b>${saveLabel ? `<button data-x="save" class="go">${esc(saveLabel)}</button>` : "<span></span>"}</div>${html}</div>`;
+    $("[data-x=cancel]", el).onclick = closeSheet;
+    document.body.appendChild(el); return el;
+  }
+  let rec = null;   // 録音中の状態
+  function stopRec(discard) {
+    if (!rec) return; const r = rec; rec = null; clearInterval(r.timer);
+    r.discard = !!discard;
+    try { if (r.mr.state !== "inactive") r.mr.stop(); } catch (e) {}
+    r.stream.getTracks().forEach((t) => t.stop());
+  }
+  function compose(id) {
+    const old = id ? find(id) : null, n = nowParts();
+    let draft = ""; if (!old) try { draft = localStorage.getItem(DRAFT) || ""; } catch (e) {}
+    let audio = null;   // { blob, mime, sec }（新しく録音したもの）
+    const el = sheet(old ? "日記を直す" : "日記を書く", `
+      <div class="row2"><div><label for="cDate">日付</label><input type="date" id="cDate" value="${old ? old.at.slice(0, 10) : n.date}"></div><div><label for="cTime">時刻</label><input type="time" id="cTime" value="${old ? old.at.slice(11, 16) : n.time}"></div></div>
+      <label for="cText">文章</label><textarea id="cText" rows="7" placeholder="今日あったこと、思ったこと">${esc(old ? old.text || "" : draft)}</textarea>
+      ${old && old.audio ? `<label for="cTr">文字起こし（直すと、直したものが表示されます。聞き取ったままの記録も残ります）</label>
+        <textarea id="cTr" rows="6" ${old.tr && old.tr.status === "done" ? "" : "disabled"}>${esc(old.tr && old.tr.status === "done" ? (old.tr.edited != null ? old.tr.edited : (old.tr.segs || []).map((s) => s.text).join("")) : "（まだ文字に直していません）")}</textarea>` : ""}
+      <label>写真</label><div class="phedit" id="phbox"></div>
+      ${old ? "" : `<label>音声</label><div class="recbox" id="recbox"></div>`}
+      ${old ? '<div class="danger"><button class="btn danger" data-x="del">この日記を削除する</button></div>' : ""}`, "保存");
+    const text = $("#cText", el), saveBtn = $("[data-x=save]", el);
+    if (!old) text.oninput = () => { try { localStorage.setItem(DRAFT, text.value); } catch (e) {} };
+
+    // 写真（すでにあるもの＝path つき、新しく足したもの＝blob つき）
+    let photos = old && old.photos ? old.photos.map((p) => ({ ...p })) : [];
+    const pb = $("#phbox", el);
+    const drawPhotos = () => {
+      pb.innerHTML = photos.map((p, i) => `<span class="ph" ${p.path ? `data-photo="${esc(p.path)}"` : ""}>${p.url ? `<img src="${p.url}" alt="">` : ""}<button data-x="rm" data-i="${i}" aria-label="この写真を外す">✕</button></span>`).join("") +
+        `<label class="addph">＋ 写真を追加<input type="file" accept="image/*" multiple hidden></label>`;
+      pb.querySelectorAll("[data-photo]").forEach((s) => fileUrl(s.dataset.photo, "image/jpeg").then((u) => s.insertAdjacentHTML("afterbegin", `<img src="${u}" alt="">`)).catch(() => {}));
+      $("input", pb).onchange = async (e) => {
+        for (const f of [...e.target.files]) { if (photos.length >= 10) { toast("写真は1つの日記に10枚までです"); break; } try { photos.push(await shrink(f)); } catch (x) { toast(x.message); } }
+        drawPhotos();
+      };
+    };
+    pb.onclick = (e) => { const b = e.target.closest("[data-x=rm]"); if (b) { photos.splice(+b.dataset.i, 1); drawPhotos(); } };
+    drawPhotos();
+    // 新しい写真を保管庫に送り、日記に書く形（path, w, h）の一覧にして返す
+    const sendPhotos = async (eid, m0) => {
+      const out = [];
+      for (const p of photos) {
+        if (!p.path) { p.path = `photo/${m0}/${eid}-${Math.random().toString(36).slice(2, 7)}.jpg`; await store.put(p.path, new Uint8Array(await p.blob.arrayBuffer()), null, `写真: ${eid}`); }
+        out.push({ path: p.path, w: p.w, h: p.h });
+      }
+      return out;
+    };
+
+    // 録音
+    const rb = $("#recbox", el);
+    const drawRec = () => {
+      if (!rb) return;
+      if (rec) rb.innerHTML = `<button class="recbtn on" data-x="stop">${ic(IC.stop)}<span>録音を止める</span></button><span class="rectime" id="rtime">0:00</span><span class="muted">話してください</span>`;
+      else if (audio) rb.innerHTML = `<audio controls src="${audio.url}"></audio><div class="recrow"><span class="muted">録音 ${dur(audio.sec)}</span><button class="link" data-x="redo">録り直す</button></div>`;
+      else rb.innerHTML = `<button class="recbtn" data-x="rec">${ic(IC.mic)}<span>録音する</span></button><span class="muted">保存すると、音声を文字に直して要約も作ります。「えー」「あのー」などのつなぎ言葉は消し、ほかの言葉は変えません</span>`;
+    };
+    const startRec = async () => {
+      let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+      catch (e) { return toast("マイクを使えませんでした。ブラウザのマイクの許可を確認してください"); }
+      const mime = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg;codecs=opus"].find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || "";
+      let mr; try { mr = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), audioBitsPerSecond: 48000 }); }
+      catch (e) { stream.getTracks().forEach((t) => t.stop()); return toast("このブラウザでは録音できません"); }
+      const chunks = [], t0 = Date.now(), me = { mr, stream };
+      mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+      mr.onstop = () => {
+        if (me.discard || !chunks.length) return;
+        const type = (mr.mimeType || mime || "audio/webm").split(";")[0], blob = new Blob(chunks, { type });
+        audio = { blob, mime: type, sec: Math.max(1, Math.round((Date.now() - t0) / 1000)), url: URL.createObjectURL(blob) };
+        drawRec();
+      };
+      me.timer = setInterval(() => {
+        const s = (Date.now() - t0) / 1000, t = $("#rtime", el); if (t) t.textContent = dur(s);
+        if (s >= 600) { stopRec(); drawRec(); toast("10分になったので録音を止めました"); }   // 長すぎる録音を防ぐ
+      }, 500);
+      rec = me; mr.start(1000); drawRec();
+    };
+    if (rb) { drawRec(); rb.onclick = (e) => { const b = e.target.closest("[data-x]"); if (!b) return; const x = b.dataset.x; if (x === "rec") startRec(); else if (x === "stop") { stopRec(); drawRec(); } else if (x === "redo") { audio = null; drawRec(); } }; }
+
+    saveBtn.onclick = async () => {
+      if (rec) return toast("先に録音を止めてください");
+      const date = $("#cDate", el).value, time = $("#cTime", el).value, body = text.value.trim();
+      if (!date || !time) return toast("日付と時刻を入れてください");
+      if (!old && !body && !audio && !photos.length) return toast("文章を書くか、録音するか、写真を付けてください");
+      saveBtn.disabled = true; saveBtn.textContent = "保存中…";
+      const at = `${date}T${time}:${old ? old.at.slice(17, 19) || "00" : n.sec}`, m = date.slice(0, 7);
+      try {
+        if (old) {
+          const upd = { ...old, at, text: body }, trEl = $("#cTr", el);
+          if (trEl && !trEl.disabled) { const auto = (old.tr.segs || []).map((s) => s.text).join(""), v = trEl.value.trim(); upd.tr = { ...old.tr }; if (v === auto) delete upd.tr.edited; else upd.tr.edited = v; }
+          const om = old.at.slice(0, 7), gone = (old.photos || []).filter((p) => !photos.some((x) => x.path === p.path));
+          upd.photos = await sendPhotos(old.id, old.id.slice(0, 4) + "-" + old.id.slice(4, 6));
+          if (!upd.photos.length) delete upd.photos;
+          for (const p of gone) store.del(p.path, `写真を削除: ${old.id}`).catch(() => {});
+          if (om !== m) await saveMonth(om, (l) => l.filter((x) => x.id !== old.id), `日記を移動: ${old.id}`);
+          await saveMonth(m, (l) => { const n2 = { ...(l.find((x) => x.id === old.id) || {}), ...upd }; if (!upd.photos) delete n2.photos; return [...l.filter((x) => x.id !== old.id), n2]; }, `日記を直す: ${old.id}`);
+        } else {
+          const eid = `${date.replace(/-/g, "")}-${time.replace(":", "")}${n.sec}-${Math.random().toString(36).slice(2, 6)}`, entry = { id: eid, at, text: body };
+          if (audio) {
+            const ext = /mp4/.test(audio.mime) ? "m4a" : /ogg/.test(audio.mime) ? "ogg" : "webm";
+            entry.audio = { path: `audio/${m}/${eid}.${ext}`, mime: audio.mime, sec: audio.sec }; entry.tr = { status: "pending" };
+            await outbox.put({ id: eid, entry, blob: audio.blob });   // 送信が終わるまで端末に取っておく
+          }
+          if (photos.length) { entry.photos = await sendPhotos(eid, m); if (audio) await outbox.put({ id: eid, entry, blob: audio.blob }); }
+          await send(entry, audio && audio.blob);
+          try { localStorage.removeItem(DRAFT); } catch (e) {}
+        }
+        closeSheet(); toast(audio ? "保存しました。これから音声を文字に直します" : "保存しました"); S.month = m; S.results = null; render(); poll();
+      } catch (e) { saveBtn.disabled = false; saveBtn.textContent = "保存"; toast(`保存できませんでした：${e.message}${audio ? "（録音はこの端末に残してあります）" : ""}`); showOutbox(); }
+    };
+    if (old) $("[data-x=del]", el).onclick = async () => {
+      if (!confirm("この日記を削除します。音声も消えて、元に戻せません。よろしいですか？")) return;
+      try {
+        await saveMonth(old.at.slice(0, 7), (l) => l.filter((x) => x.id !== old.id), `日記を削除: ${old.id}`);
+        if (old.audio) await store.del(old.audio.path, `音声を削除: ${old.id}`).catch(() => {});
+        for (const p of old.photos || []) await store.del(p.path, `写真を削除: ${old.id}`).catch(() => {});
+        closeSheet(); toast("削除しました"); if (S.results) S.results = S.results.filter((x) => x.id !== old.id); render();
+      } catch (e) { toast(`削除できませんでした：${e.message}`); }
+    };
+  }
+  // 音声 → 日記の順に保存する（日記が保存されると、保管庫の側で文字起こしが始まる）
+  async function send(entry, blob) {
+    const m = entry.at.slice(0, 7);
+    if (blob) await store.put(entry.audio.path, new Uint8Array(await blob.arrayBuffer()), null, `音声: ${entry.id}`).catch((e) => { if (e.status !== 409 && e.status !== 422) throw e; });   // すでに送信済みなら先へ
+    await saveMonth(m, (l) => [...l.filter((x) => x.id !== entry.id), entry], `日記: ${entry.id}`);
+    if (blob) await outbox.del(entry.id);
+  }
+  async function resend() {
+    const items = (await outbox.all()) || []; let ok = 0;
+    for (const it of items) { try { await send(it.entry, it.blob); ok++; } catch (e) { toast(`送信できませんでした：${e.message}`); break; } }
+    if (ok) { toast(`${ok}件を送信しました`); open(S.month); poll(); } else showOutbox();
+  }
+
+  // 文字起こしが終わるのを待つ（終わったら表示を更新）
+  let pollT;
+  function poll() {
+    clearInterval(pollT); let n = 0;
+    pollT = setInterval(async () => {
+      const pending = (S.data[S.month] || []).some((e) => e.tr && e.tr.status === "pending");
+      if (!pending || ++n > 30) return clearInterval(pollT);
+      if ($(".sheet") || S.results) return;
+      const before = JSON.stringify(S.data[S.month]);
+      try { await loadMonth(S.month, true); } catch (e) { return; }
+      if (JSON.stringify(S.data[S.month]) !== before && !$(".sheet") && !$("audio:not([paused])")) render();
+    }, 15000);
+  }
+
+  async function search(q) {
+    S.q = q; if (!q.trim()) { S.results = null; return render(); }
+    toast("さがしています…");
+    const k = q.trim().toLowerCase(), hit = [];
+    for (const m of S.months) { try { for (const e of await loadMonth(m)) { const t = [e.text, e.tr && e.tr.edited, ...((e.tr && e.tr.segs) || []).map((s) => s.text + s.raw)].join(" ").toLowerCase(); if (t.includes(k)) hit.push(e); } } catch (e) {} }
+    S.results = hit; render();
+  }
+  function settings() {
+    const el = sheet("設定", `<table><tr><th>保存先</th><td>${B.type === "github" ? "GitHub（非公開の保管庫）" : "このPC（確認用）"}</td></tr><tr><th>日記のある月</th><td>${S.months.length ? S.months.map(mlabel).join("、") : "まだありません"}</td></tr></table>
+      <p class="note">文章と音声は非公開の保管庫に保存されます。音声は、文字に直すために Google の音声認識へ送られます。聞き取った文章は Claude へ送られ、句読点と改行を足し、「えー」「あのー」などのつなぎ言葉を消し、要約を作ります。つなぎ言葉のほかの言葉が1文字でも変わっていた場合は使わず、聞き取ったままを表示します。要約は音声そのものではなく、文字起こしから作っています。写真は長い辺1600pxに小さくして保存します。</p>
+      <div class="danger"><button class="btn" data-x="forget">この端末のパスワードの記憶を消す</button></div>`);
+    $("[data-x=forget]", el).onclick = () => { try { localStorage.removeItem(PWKEY); } catch (e) {} toast("この端末の記憶を消しました"); };
+  }
+
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    const a = b.dataset.act, v = b.dataset.v;
+    if (a === "new") compose();
+    else if (a === "edit") compose(v);
+    else if (a === "month") { if (v) open(v); }
+    else if (a === "play") play(v);
+    else if (a === "seek") play(v, Number(b.dataset.t) || 0);
+    else if (a === "photo") viewPhoto(v, +b.dataset.i);
+    else if (a === "raw") { S.raw[v] = !S.raw[v]; render(); }
+    else if (a === "settings") settings();
+    else if (a === "clearq") { S.q = ""; S.results = null; render(); }
+    else if (a === "resend") resend();
+    else if (a === "retry") saveMonth(find(v).at.slice(0, 7), (l) => l.map((x) => (x.id === v ? { ...x, tr: { status: "pending" } } : x)), `文字起こしをやり直す: ${v}`).then(() => { toast("もう一度ためします"); render(); poll(); }).catch((x) => toast(x.message));
+  });
+  document.addEventListener("change", (e) => { if (e.target.id === "msel") open(e.target.value); else if (e.target.id === "q") search(e.target.value); });
+  window.addEventListener("beforeunload", (e) => { if (rec) { e.preventDefault(); e.returnValue = ""; } });
+
+  // ---------- 起動（パスワードで保存先の情報を開く） ----------
+  async function decrypt(p, pw) {
+    const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64d(p.salt), iterations: p.iter, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64d(p.iv) }, key, b64d(p.ct))));
+  }
+  async function start(cfg) {
+    B = cfg.backend; document.title = "日記";
+    render();
+    try { S.months = (await store.list("entries")).filter((n) => /^\d{4}-\d{2}\.json$/.test(n)).map((n) => n.slice(0, 7)).sort(); } catch (e) { toast(`読み込めませんでした：${e.message}`); }
+    await open(S.month); poll();
+  }
+  function lock(msg) {
+    app.innerHTML = `<div class="lock"><h2>パスワードを入力してください</h2><form id="lockF"><input type="password" id="pw" autocomplete="current-password" autofocus aria-label="パスワード">
+      <label class="check"><input type="checkbox" id="keep" checked> この端末に記憶する</label><div class="err">${esc(msg || "")}</div><button class="btn primary">開く</button></form></div>`;
+    $("#lockF").onsubmit = async (e) => {
+      e.preventDefault(); const pw = $("#pw").value;
+      try { const d = await decrypt(payload, pw); if ($("#keep").checked) try { localStorage.setItem(PWKEY, pw); } catch (x) {} start(d); }
+      catch (x) { lock("パスワードが違います"); }
+    };
+  }
+  (async () => {
+    // ほかのサイトの中に埋め込まれて表示されたときは、何も出さない
+    if (window.top !== window.self) { document.body.textContent = ""; return; }
+    if (!payload.enc) return start(payload.data);
+    let saved = null; try { saved = localStorage.getItem(PWKEY); } catch (e) {}
+    if (saved) try { return start(await decrypt(payload, saved)); } catch (e) {}
+    lock();
+  })();
+})();
+</script>
+</body>
+</html>
